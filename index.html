@@ -1,0 +1,1598 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATELIER AI | Autonomous Wardrobe & Personal Stylist</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FBF9F5',
+              100: '#F5F1E9',
+              200: '#ECE3D4',
+              500: '#C2A675',
+              700: '#8E7343',
+              900: '#1F1D1A'
+            },
+            noir: {
+              900: '#121212',
+              800: '#1C1C1E',
+              700: '#2C2C2E',
+              600: '#3A3A3C'
+            }
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #FAF8F5;
+      color: #1A1A1A;
+      overflow-x: hidden;
+    }
+
+    .font-editorial {
+      font-family: 'Playfair Display', serif;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1ede6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4c8b8;
+      border-radius: 9999px;
+    }
+
+    /* Scanline AI Animation */
+    @keyframes scanline {
+      0% { top: 0%; opacity: 0.8; }
+      50% { opacity: 1; }
+      100% { top: 100%; opacity: 0.8; }
+    }
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #c2a675, #ffffff, #c2a675, transparent);
+      box-shadow: 0 0 15px rgba(194, 166, 117, 0.8);
+      animation: scanline 2.2s ease-in-out infinite;
+    }
+
+    /* Studio Product Backdrop Effect */
+    .studio-shadow {
+      filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.12));
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(230, 224, 215, 0.6);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#FAF8F5]">
+
+  <!-- Top Global Header -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-[#EAE3D9]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-noir-900 text-brand-100 flex items-center justify-center font-editorial text-xl font-bold tracking-wider shadow-md">
+          A
+        </div>
+        <div>
+          <span class="text-xs font-semibold tracking-widest uppercase text-brand-700">Studio & Intelligence</span>
+          <h1 class="text-xl font-editorial font-bold text-noir-900 tracking-tight leading-none">ATELIER CLOSET</h1>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 p-1 bg-[#F0EBE1] rounded-full border border-[#E3DACB]">
+        <button onclick="switchTab('stylist')" id="nav-stylist" class="tab-btn px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 bg-white text-noir-900 shadow-sm flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-brand-700"></i> AI Stylist
+        </button>
+        <button onclick="switchTab('wardrobe')" id="nav-wardrobe" class="tab-btn px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 text-stone-600 hover:text-noir-900 flex items-center gap-2">
+          <i data-lucide="shirt" class="w-4 h-4"></i> Wardrobe (<span id="wardrobe-count-pill">0</span>)
+        </button>
+        <button onclick="switchTab('journal')" id="nav-journal" class="tab-btn px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 text-stone-600 hover:text-noir-900 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4"></i> Fit Journal
+        </button>
+        <button onclick="switchTab('analytics')" id="nav-analytics" class="tab-btn px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 text-stone-600 hover:text-noir-900 flex items-center gap-2">
+          <i data-lucide="pie-chart" class="w-4 h-4"></i> Closet Intelligence
+        </button>
+      </nav>
+
+      <!-- Action Button -->
+      <div class="flex items-center gap-3">
+        <button onclick="openUploadModal()" class="px-4 py-2.5 rounded-full bg-noir-900 hover:bg-black text-brand-100 text-sm font-medium transition shadow-sm hover:shadow flex items-center gap-2">
+          <i data-lucide="camera" class="w-4 h-4 text-brand-500"></i>
+          <span class="hidden sm:inline">Add Clothes (AI Cutout)</span>
+          <span class="sm:hidden">Add</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Bottom Tab Navigation -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE3D9] px-3 py-2 flex justify-around">
+    <button onclick="switchTab('stylist')" class="mobile-tab-btn flex flex-col items-center text-xs py-1 text-noir-900 font-semibold" data-target="stylist">
+      <i data-lucide="sparkles" class="w-5 h-5 mb-1 text-brand-700"></i>
+      Stylist
+    </button>
+    <button onclick="switchTab('wardrobe')" class="mobile-tab-btn flex flex-col items-center text-xs py-1 text-stone-500" data-target="wardrobe">
+      <i data-lucide="shirt" class="w-5 h-5 mb-1"></i>
+      Wardrobe
+    </button>
+    <button onclick="switchTab('journal')" class="mobile-tab-btn flex flex-col items-center text-xs py-1 text-stone-500" data-target="journal">
+      <i data-lucide="calendar" class="w-5 h-5 mb-1"></i>
+      Journal
+    </button>
+    <button onclick="switchTab('analytics')" class="mobile-tab-btn flex flex-col items-center text-xs py-1 text-stone-500" data-target="analytics">
+      <i data-lucide="pie-chart" class="w-5 h-5 mb-1"></i>
+      Insights
+    </button>
+  </div>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 mb-20 md:mb-10">
+
+    <!-- ============================================== -->
+    <!-- 1. AI STYLIST TAB -->
+    <!-- ============================================== -->
+    <section id="tab-stylist" class="tab-content transition-all duration-300">
+      
+      <!-- Ambient Prompt Bar / Styling Studio -->
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-sm border border-[#E9E1D6] mb-8 bg-gradient-to-br from-white via-[#FCFAF7] to-[#F7F2EA]">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-100 text-brand-900 text-xs font-semibold tracking-wide uppercase mb-3">
+            <span class="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span> Personal Editorial Engine
+          </div>
+          <h2 class="text-3xl sm:text-4xl font-editorial font-bold text-noir-900 leading-tight">
+            Where are you heading today?
+          </h2>
+          <p class="text-stone-600 text-sm mt-2">
+            The AI curates head-to-toe coordinated outfits directly from your real wardrobe, calibrated for weather, aesthetics, and venue formality.
+          </p>
+        </div>
+
+        <!-- Prompt Form -->
+        <div class="mt-6 flex flex-col md:flex-row gap-3">
+          <div class="relative flex-1">
+            <i data-lucide="map-pin" class="w-5 h-5 text-stone-400 absolute left-4 top-3.5"></i>
+            <input id="occasion-input" type="text" 
+                   value="Rainy Monday client meeting & cozy coffee catch-up" 
+                   placeholder="e.g. Sunny rooftop brunch with friends, chilly gallery opening..."
+                   class="w-full pl-12 pr-4 py-3.5 bg-white border border-[#DDD3C4] rounded-2xl text-stone-900 placeholder-stone-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-noir-900/10 focus:border-noir-900 shadow-sm transition">
+          </div>
+          
+          <!-- Context / Weather Selectors -->
+          <div class="flex gap-2">
+            <select id="weather-select" class="px-4 py-3.5 bg-white border border-[#DDD3C4] rounded-2xl text-sm font-medium text-stone-800 focus:outline-none focus:ring-2 focus:ring-noir-900/10 shadow-sm">
+              <option value="mild">🌤️ Mild (18°C)</option>
+              <option value="rainy" selected>🌧️ Rainy / Chilly (12°C)</option>
+              <option value="warm">☀️ Sunny / Warm (26°C)</option>
+              <option value="cold">❄️ Cold Winter (4°C)</option>
+            </select>
+
+            <button onclick="generateAIOutfit()" id="generate-btn" class="px-7 py-3.5 bg-noir-900 hover:bg-black text-brand-100 font-semibold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 shrink-0">
+              <i data-lucide="sparkles" class="w-4 h-4 text-brand-500"></i>
+              <span>Curate Look</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Inspirations Pill Tray -->
+        <div class="mt-4 flex items-center gap-2 overflow-x-auto pb-1 text-xs text-stone-600">
+          <span class="font-semibold text-stone-400 shrink-0">Quick picks:</span>
+          <button onclick="setOccasion('Sunday farmers market & casual coffee')" class="px-3 py-1.5 rounded-full bg-white border border-[#E5DDCF] hover:border-stone-400 transition whitespace-nowrap">Sunday Farmers Market</button>
+          <button onclick="setOccasion('Late evening minimalist dinner date')" class="px-3 py-1.5 rounded-full bg-white border border-[#E5DDCF] hover:border-stone-400 transition whitespace-nowrap">Minimalist Dinner Date</button>
+          <button onclick="setOccasion('Creative tech pitch meeting')" class="px-3 py-1.5 rounded-full bg-white border border-[#E5DDCF] hover:border-stone-400 transition whitespace-nowrap">Creative Pitch Meeting</button>
+          <button onclick="setOccasion('Relaxed weekend museum gallery stroll')" class="px-3 py-1.5 rounded-full bg-white border border-[#E5DDCF] hover:border-stone-400 transition whitespace-nowrap">Art Museum Stroll</button>
+        </div>
+      </div>
+
+      <!-- Current Generated Look Section -->
+      <div id="outfit-display-container" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Coordinated Wardrobe Canvas (Visual Look) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8E0D5] shadow-sm relative overflow-hidden">
+            
+            <div class="flex items-center justify-between pb-6 border-b border-[#F0EAE1]">
+              <div>
+                <span id="look-tag" class="text-xs uppercase font-bold tracking-widest text-brand-700 bg-brand-100 px-3 py-1 rounded-full">
+                  Look Option #1 • Autumn Tailored
+                </span>
+                <h3 id="look-title" class="text-2xl font-editorial font-bold text-noir-900 mt-2">
+                  The Structured Monochrome Ensemble
+                </h3>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-stone-400 font-medium">Coherence Score</span>
+                <div class="flex items-center gap-1.5 justify-end">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span id="coherence-score" class="text-lg font-bold text-noir-900">98%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Garment Slots (Swipe to Swap Engine) -->
+            <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4" id="outfit-pieces-grid">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Dynamic Swap Tip Banner -->
+            <div class="mt-6 p-3.5 bg-[#FAF7F2] rounded-2xl border border-[#ECE4D8] flex items-center justify-between text-xs text-stone-600">
+              <div class="flex items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-700 animate-spin-slow"></i>
+                <span><strong>Swipe to Swap:</strong> Click any garment above to swap it out. Atelier dynamically rebuilds harmonious matches around your new choice!</span>
+              </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="mt-6 pt-6 border-t border-[#F0EAE1] flex flex-wrap items-center justify-between gap-4">
+              <div class="flex items-center gap-2">
+                <button onclick="logCurrentOutfitToday()" class="px-5 py-2.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                  Wear Today & Log
+                </button>
+                <button onclick="reRollOutfit()" class="px-4 py-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-noir-900 font-medium text-sm flex items-center gap-2 transition">
+                  <i data-lucide="shuffle" class="w-4 h-4"></i>
+                  Regenerate Alternative
+                </button>
+              </div>
+
+              <div class="flex items-center gap-2 text-xs text-stone-500 font-medium">
+                <i data-lucide="shield-check" class="w-4 h-4 text-brand-700"></i>
+                All pieces sourced from your actual registered closet
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right: AI Stylist Critique & Architectural Rationale -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+          <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8E0D5] shadow-sm flex flex-col justify-between h-full">
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center">
+                  <i data-lucide="bot" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="font-editorial text-lg font-bold text-noir-900">Stylist's Rationale</h4>
+                  <p class="text-xs text-stone-500">Autonomous Color & Silhouette Sync</p>
+                </div>
+              </div>
+
+              <div class="prose prose-stone text-sm text-stone-700 space-y-3.5 leading-relaxed" id="stylist-notes">
+                <!-- Injected via JavaScript -->
+              </div>
+
+              <!-- Color Palette Harmony Visualizer -->
+              <div class="mt-6 pt-5 border-t border-[#F0EAE1]">
+                <h5 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Palette Harmonies</h5>
+                <div class="flex items-center gap-2" id="outfit-color-palette">
+                  <!-- Rendered palette chips -->
+                </div>
+              </div>
+
+              <!-- Formality & Warmth Meter -->
+              <div class="mt-6 space-y-3">
+                <div>
+                  <div class="flex justify-between text-xs font-medium text-stone-600 mb-1">
+                    <span>Weather Insulation</span>
+                    <span id="metric-warmth-text">High Protection</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div id="metric-warmth-bar" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 78%;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-medium text-stone-600 mb-1">
+                    <span>Occasion Formality</span>
+                    <span id="metric-formality-text">Smart Casual</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div id="metric-formality-bar" class="h-full bg-noir-900 rounded-full transition-all duration-500" style="width: 65%;"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Seasonal Tip Quote -->
+            <div class="mt-6 p-4 rounded-2xl bg-[#F8F5EE] border border-[#E9DEC9] text-xs text-stone-600 italic">
+              "Balance oversized outerwear with sharp, tapered boots to retain proportion during inclement weather."
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 2. WARDROBE VAULT & AUTO-TAGGING TAB -->
+    <!-- ============================================== -->
+    <section id="tab-wardrobe" class="tab-content hidden transition-all duration-300">
+      
+      <!-- Wardrobe Header & Filters -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-3xl font-editorial font-bold text-noir-900">Digital Archive</h2>
+          <p class="text-stone-500 text-sm">Every garment isolated via AI cutout, indexed with fabric, warmth, and cut attributes.</p>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
+          <button onclick="filterWardrobe('all')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-noir-900 text-white" data-cat="all">All</button>
+          <button onclick="filterWardrobe('outerwear')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-700 border border-[#E2D8C9] hover:bg-[#F3EDE2]" data-cat="outerwear">Outerwear</button>
+          <button onclick="filterWardrobe('tops')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-700 border border-[#E2D8C9] hover:bg-[#F3EDE2]" data-cat="tops">Tops</button>
+          <button onclick="filterWardrobe('bottoms')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-700 border border-[#E2D8C9] hover:bg-[#F3EDE2]" data-cat="bottoms">Bottoms</button>
+          <button onclick="filterWardrobe('shoes')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-700 border border-[#E2D8C9] hover:bg-[#F3EDE2]" data-cat="shoes">Footwear</button>
+          <button onclick="filterWardrobe('accessories')" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-700 border border-[#E2D8C9] hover:bg-[#F3EDE2]" data-cat="accessories">Accessories</button>
+        </div>
+      </div>
+
+      <!-- Closet Grid -->
+      <div id="wardrobe-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+        <!-- Wardrobe item cards populated by JS -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 3. JOURNAL & WEAR LOG TAB -->
+    <!-- ============================================== -->
+    <section id="tab-journal" class="tab-content hidden transition-all duration-300">
+      
+      <div class="mb-8">
+        <h2 class="text-3xl font-editorial font-bold text-noir-900">Outfit Journal & Calendar</h2>
+        <p class="text-stone-500 text-sm">Chronological diary of what you wore, ensuring repetition only when intentional.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left: Interactive Calendar Tracker -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-[#E8E0D5] shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="font-editorial text-xl font-bold text-noir-900" id="current-month-display">October 2024</h3>
+            <span class="text-xs font-semibold text-brand-700 bg-brand-100 px-3 py-1 rounded-full">30 Days Active</span>
+          </div>
+
+          <!-- Calendar Days Grid -->
+          <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-stone-400 mb-2">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+          </div>
+          <div class="grid grid-cols-7 gap-2" id="calendar-days-grid">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-[#F0EAE1] flex items-center justify-around text-xs text-stone-500">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> Fit Logged</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-noir-900"></span> Today</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-stone-200"></span> Unrecorded</span>
+          </div>
+        </div>
+
+        <!-- Right: Recent Diary Log Entries -->
+        <div class="lg:col-span-7 space-y-4" id="journal-entries-list">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 4. CLOSET INTELLIGENCE & ANALYTICS TAB -->
+    <!-- ============================================== -->
+    <section id="tab-analytics" class="tab-content hidden transition-all duration-300">
+      
+      <div class="mb-8">
+        <h2 class="text-3xl font-editorial font-bold text-noir-900">Closet Intelligence</h2>
+        <p class="text-stone-500 text-sm">Autonomous breakdown of your rotation: go-to staples vs neglected pieces hidden in the back.</p>
+      </div>
+
+      <!-- Stat Counters -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-sm">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400">Total Garments</span>
+          <p class="text-3xl font-editorial font-bold text-noir-900 mt-2" id="metric-total-items">0</p>
+          <span class="text-xs text-emerald-600 font-semibold mt-1 inline-block">100% Digitize Rate</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-sm">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400">Rotation Utilization</span>
+          <p class="text-3xl font-editorial font-bold text-noir-900 mt-2">74%</p>
+          <span class="text-xs text-brand-700 font-semibold mt-1 inline-block">+12% vs last month</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-sm">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400">Average Wears / Item</span>
+          <p class="text-3xl font-editorial font-bold text-noir-900 mt-2">5.8x</p>
+          <span class="text-xs text-stone-500 font-semibold mt-1 inline-block">Sustainable pace</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-sm">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400">Forgotten Value</span>
+          <p class="text-3xl font-editorial font-bold text-amber-700 mt-2" id="metric-neglected-count">0 items</p>
+          <span class="text-xs text-stone-500 font-semibold mt-1 inline-block">Unworn in > 45 days</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Most Worn: High Rotation MVPs -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8E0D5] shadow-sm">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="font-editorial text-xl font-bold text-noir-900">Your Go-To Staples</h3>
+              <p class="text-xs text-stone-500">Highest frequency rotation in your daily fits</p>
+            </div>
+            <span class="p-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold">Most Worn</span>
+          </div>
+
+          <div class="space-y-4" id="analytics-top-worn">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Forgotten Closet Gems (Sitting in the back) -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8E0D5] shadow-sm">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="font-editorial text-xl font-bold text-noir-900">Forgotten Closet Gems</h3>
+              <p class="text-xs text-stone-500">Pieces sitting in the dark that deserve an outfit</p>
+            </div>
+            <span class="p-2 bg-amber-50 text-amber-800 rounded-xl text-xs font-bold">Revival Needed</span>
+          </div>
+
+          <div class="space-y-4" id="analytics-forgotten">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: AI BACKGROUND CUTOUT & AUTO-TAGGING -->
+  <!-- ============================================== -->
+  <div id="upload-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-[#E8E0D5] overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-[#F0EAE1] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center">
+            <i data-lucide="wand-2" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-editorial text-lg font-bold text-noir-900">AI Garment Digitizer</h3>
+            <p class="text-xs text-stone-500">Auto background removal & multi-parameter tagging</p>
+          </div>
+        </div>
+        <button onclick="closeUploadModal()" class="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- Step 1: Upload or Mirror Selfie Input -->
+        <div id="upload-input-state">
+          <label class="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">Garment Photo / Mirror Selfie</label>
+          <div class="border-2 border-dashed border-[#DDD2C1] rounded-2xl p-6 text-center hover:border-noir-900 transition cursor-pointer relative bg-[#FCFAF7] group" onclick="document.getElementById('file-upload-input').click()">
+            <input type="file" id="file-upload-input" accept="image/*" class="hidden" onchange="handleImageSelection(event)">
+            
+            <div class="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center mx-auto text-brand-700 group-hover:scale-105 transition">
+              <i data-lucide="image-plus" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-semibold text-noir-900 mt-3">Snap a mirror selfie or drop garment picture</p>
+            <p class="text-xs text-stone-400 mt-1">ATELIER AI will segment the garment from background instantly</p>
+
+            <!-- Quick Preset Sample Clothes -->
+            <div class="mt-4 pt-4 border-t border-[#ECE3D5] flex items-center justify-center gap-2">
+              <span class="text-xs text-stone-500 font-medium">Or try preset:</span>
+              <button type="button" onclick="loadSampleGarment('trench'); event.stopPropagation();" class="text-xs bg-white px-2.5 py-1 rounded-full border border-stone-200 hover:border-stone-400">🧥 Camel Trench</button>
+              <button type="button" onclick="loadSampleGarment('knit'); event.stopPropagation();" class="text-xs bg-white px-2.5 py-1 rounded-full border border-stone-200 hover:border-stone-400">🧶 Cashmere Turtleneck</button>
+              <button type="button" onclick="loadSampleGarment('loafers'); event.stopPropagation();" class="text-xs bg-white px-2.5 py-1 rounded-full border border-stone-200 hover:border-stone-400">👞 Oxford Loafers</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Processing & Cutout Simulation Sandbox -->
+        <div id="processing-view" class="hidden">
+          <div class="relative w-full h-72 rounded-2xl bg-stone-900 overflow-hidden flex items-center justify-center border border-stone-800">
+            <!-- Processing Scanner Line -->
+            <div id="ai-scan-laser" class="scanner-line"></div>
+            
+            <!-- Garment Canvas / Isolated image -->
+            <img id="cutout-preview-img" src="" alt="Processing" class="max-h-60 object-contain transition-all duration-700 filter">
+
+            <!-- Real-time AI Status Indicator -->
+            <div class="absolute bottom-3 left-4 right-4 bg-noir-900/90 backdrop-blur-md px-4 py-2.5 rounded-xl border border-stone-700 flex items-center justify-between text-xs text-white">
+              <div class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-brand-500 animate-spin"></i>
+                <span id="ai-process-status">Segmenting garment contours...</span>
+              </div>
+              <span id="ai-process-percent" class="font-mono text-brand-500">32%</span>
+            </div>
+
+            <!-- Cutout Toggle (Simulated vs Original) -->
+            <div id="cutout-toggle-pill" class="absolute top-3 right-3 hidden bg-white/90 backdrop-blur text-noir-900 px-3 py-1 rounded-full text-xs font-bold shadow">
+              Clean Studio Cutout ✓
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Auto-Detected Tags & Parameters -->
+        <div id="auto-tags-form" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs uppercase font-bold tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1.5">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> AI Auto-Tagged Characteristics
+            </span>
+            <span class="text-xs text-stone-400">You can adjust tags if needed</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Garment Name</label>
+              <input id="item-input-name" type="text" class="w-full text-sm font-medium px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:border-noir-900">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Wardrobe Category</label>
+              <select id="item-input-cat" class="w-full text-sm font-medium px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none">
+                <option value="outerwear">Outerwear</option>
+                <option value="tops">Tops / Shirts / Knits</option>
+                <option value="bottoms">Bottoms / Trousers / Skirts</option>
+                <option value="shoes">Footwear</option>
+                <option value="accessories">Accessories / Bags</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Fabric & Texture</label>
+              <input id="item-input-fabric" type="text" class="w-full text-xs font-medium px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Color Shade</label>
+              <input id="item-input-color" type="text" class="w-full text-xs font-medium px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Formality</label>
+              <select id="item-input-formality" class="w-full text-xs font-medium px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl">
+                <option value="Casual">Casual</option>
+                <option value="Smart Casual">Smart Casual</option>
+                <option value="Formal">Formal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Warmth Rating (1-5)</label>
+              <input id="item-input-warmth" type="range" min="1" max="5" value="3" class="w-full accent-noir-900">
+              <div class="flex justify-between text-[10px] text-stone-400">
+                <span>Light Summer</span>
+                <span>Sub-Zero Warm</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Color Hex</label>
+              <div class="flex items-center gap-2">
+                <input id="item-input-colorhex" type="color" value="#C5A880" class="w-8 h-8 rounded-lg cursor-pointer border border-stone-300">
+                <span id="color-hex-label" class="text-xs font-mono text-stone-600">#C5A880</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 bg-[#FAF7F2] border-t border-[#F0EAE1] flex items-center justify-between">
+        <button onclick="closeUploadModal()" class="text-xs font-semibold text-stone-500 hover:text-noir-900">Cancel</button>
+        <button id="save-garment-btn" disabled onclick="saveNewGarment()" class="px-6 py-2.5 rounded-full bg-stone-300 text-stone-500 font-semibold text-xs tracking-wide uppercase transition cursor-not-allowed">
+          Index into Wardrobe
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: SWIPE TO SWAP PIECE REPLACER -->
+  <!-- ============================================== -->
+  <div id="swap-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-[#E8E0D5] overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="px-6 py-4 border-b border-[#F0EAE1] flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-brand-700">Dynamic Recomposition</span>
+          <h3 class="font-editorial text-lg font-bold text-noir-900">Select Alternative <span id="swap-category-name">Garment</span></h3>
+        </div>
+        <button onclick="closeSwapModal()" class="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto">
+        <p class="text-xs text-stone-500 mb-4">Choose an item from your closet to replace this slot. Atelier AI will automatically recalculate the outfit's coherence notes!</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="swap-options-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-20 md:bottom-8 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-noir-900 text-brand-100 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-stone-700 text-sm">
+    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">Outfit logged to your diary</span>
+  </div>
+
+  <!-- JavaScript Engine -->
+  <script>
+    /* ========================================================
+       1. INITIAL DATA STORE & REALISTIC PRELOADED WARDROBE
+       ======================================================== */
+    const DEFAULT_WARDROBE = [
+      {
+        id: 'w-1',
+        name: 'Oversized Double-Breasted Wool Trench',
+        category: 'outerwear',
+        color: 'Camel Tan',
+        colorHex: '#C5A880',
+        fabric: 'Heavy Melton Wool',
+        warmth: 4,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=600&q=80',
+        wears: 14,
+        lastWorn: '2024-10-22',
+        cutoutDone: true
+      },
+      {
+        id: 'w-2',
+        name: 'Chunky Ribbed Cashmere Turtleneck',
+        category: 'tops',
+        color: 'Oatmeal Heather',
+        colorHex: '#E6DFC5',
+        fabric: '100% Cashmere',
+        warmth: 4,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=600&q=80',
+        wears: 18,
+        lastWorn: '2024-10-20',
+        cutoutDone: true
+      },
+      {
+        id: 'w-3',
+        name: 'Pleated High-Waisted Wide Trousers',
+        category: 'bottoms',
+        color: 'Midnight Charcoal',
+        colorHex: '#2B2B2B',
+        fabric: 'Tropical Virgin Wool',
+        warmth: 3,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=600&q=80',
+        wears: 19,
+        lastWorn: '2024-10-21',
+        cutoutDone: true
+      },
+      {
+        id: 'w-4',
+        name: 'Polished Lug-Sole Leather Derby Boots',
+        category: 'shoes',
+        color: 'Onyx Black',
+        colorHex: '#141414',
+        fabric: 'Calfskin Leather',
+        warmth: 3,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&w=600&q=80',
+        wears: 22,
+        lastWorn: '2024-10-23',
+        cutoutDone: true
+      },
+      {
+        id: 'w-5',
+        name: 'Structured Leather Shoulder Bag',
+        category: 'accessories',
+        color: 'Cognac Brown',
+        colorHex: '#7C3F24',
+        fabric: 'Grained Leather',
+        warmth: 1,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80',
+        wears: 11,
+        lastWorn: '2024-10-18',
+        cutoutDone: true
+      },
+      {
+        id: 'w-6',
+        name: 'Relaxed Silk Camp-Collar Shirt',
+        category: 'tops',
+        color: 'Ecru Ivory',
+        colorHex: '#F6F3EB',
+        fabric: 'Sandwashed Silk',
+        warmth: 1,
+        formality: 'Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=600&q=80',
+        wears: 6,
+        lastWorn: '2024-09-12',
+        cutoutDone: true
+      },
+      {
+        id: 'w-7',
+        name: 'Japanese Selvedge Denim Straight',
+        category: 'bottoms',
+        color: 'Washed Indigo',
+        colorHex: '#3D5A80',
+        fabric: '13oz Cotton Denim',
+        warmth: 3,
+        formality: 'Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80',
+        wears: 15,
+        lastWorn: '2024-10-14',
+        cutoutDone: true
+      },
+      {
+        id: 'w-8',
+        name: 'Minimalist White Leather Low Tops',
+        category: 'shoes',
+        color: 'Pure Chalk',
+        colorHex: '#FFFFFF',
+        fabric: 'Smooth Nappa',
+        warmth: 2,
+        formality: 'Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=600&q=80',
+        wears: 26,
+        lastWorn: '2024-10-19',
+        cutoutDone: true
+      },
+      {
+        id: 'w-9',
+        name: 'Cropped Leather Biker Jacket',
+        category: 'outerwear',
+        color: 'Matte Black',
+        colorHex: '#1D1D1D',
+        fabric: 'Full-Grain Lambskin',
+        warmth: 3,
+        formality: 'Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
+        wears: 2,
+        lastWorn: '2024-08-04',
+        cutoutDone: true
+      },
+      {
+        id: 'w-10',
+        name: 'Forest Green Wool Fedora Hat',
+        category: 'accessories',
+        color: 'Deep Forest',
+        colorHex: '#22382C',
+        fabric: 'Felted Rabbit Wool',
+        warmth: 2,
+        formality: 'Formal',
+        imageUrl: 'https://images.unsplash.com/photo-1514327605112-b887c0e61c0a?auto=format&fit=crop&w=600&q=80',
+        wears: 1,
+        lastWorn: '2024-07-15',
+        cutoutDone: true
+      },
+      {
+        id: 'w-11',
+        name: 'Tailored Single-Breasted Blazer',
+        category: 'outerwear',
+        color: 'Navy Houndstooth',
+        colorHex: '#1B263B',
+        fabric: 'Italian Wool Twill',
+        warmth: 3,
+        formality: 'Formal',
+        imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80',
+        wears: 4,
+        lastWorn: '2024-09-02',
+        cutoutDone: true
+      },
+      {
+        id: 'w-12',
+        name: 'Espresso Suede Penny Loafers',
+        category: 'shoes',
+        color: 'Espresso',
+        colorHex: '#4A3728',
+        fabric: 'Soft Calf Suede',
+        warmth: 2,
+        formality: 'Smart Casual',
+        imageUrl: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=600&q=80',
+        wears: 3,
+        lastWorn: '2024-08-28',
+        cutoutDone: true
+      }
+    ];
+
+    const DEFAULT_HISTORY = [
+      {
+        id: 'log-1',
+        date: '2024-10-23',
+        occasion: 'Chilly studio critique & team lunch',
+        itemIds: ['w-1', 'w-2', 'w-3', 'w-4'],
+        rating: '5/5'
+      },
+      {
+        id: 'log-2',
+        date: '2024-10-21',
+        occasion: 'Client presentation downtown',
+        itemIds: ['w-11', 'w-6', 'w-3', 'w-12'],
+        rating: '4.8/5'
+      },
+      {
+        id: 'log-3',
+        date: '2024-10-19',
+        occasion: 'Saturday neighborhood stroll & vintage books',
+        itemIds: ['w-9', 'w-6', 'w-7', 'w-8'],
+        rating: '5/5'
+      }
+    ];
+
+    // Local Storage Reactive State
+    let wardrobe = JSON.parse(localStorage.getItem('atelier_wardrobe')) || DEFAULT_WARDROBE;
+    let fitHistory = JSON.parse(localStorage.getItem('atelier_history')) || DEFAULT_HISTORY;
+
+    // Current Active Generated Outfit
+    let currentOutfit = {
+      outerwear: 'w-1',
+      tops: 'w-2',
+      bottoms: 'w-3',
+      shoes: 'w-4',
+      accessories: 'w-5'
+    };
+
+    let activeSwapCategory = null;
+
+    function saveState() {
+      localStorage.setItem('atelier_wardrobe', JSON.stringify(wardrobe));
+      localStorage.setItem('atelier_history', JSON.stringify(fitHistory));
+      updateGlobalMetrics();
+    }
+
+    /* ========================================================
+       2. TAB NAVIGATION SYSTEM
+       ======================================================== */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      // Desktop nav button active state
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-noir-900', 'shadow-sm');
+        btn.classList.add('text-stone-600');
+      });
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-white', 'text-noir-900', 'shadow-sm');
+        activeBtn.classList.remove('text-stone-600');
+      }
+
+      // Mobile nav state
+      document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-target') === tabId) {
+          btn.classList.add('text-noir-900', 'font-semibold');
+          btn.classList.remove('text-stone-500');
+        } else {
+          btn.classList.remove('text-noir-900', 'font-semibold');
+          btn.classList.add('text-stone-500');
+        }
+      });
+
+      if (tabId === 'wardrobe') renderWardrobeGrid('all');
+      if (tabId === 'journal') renderJournal();
+      if (tabId === 'analytics') renderAnalytics();
+
+      lucide.createIcons();
+    }
+
+    /* ========================================================
+       3. AI STYLING ENGINE WITH INTELLIGENT MATCHING
+       ======================================================== */
+    function setOccasion(text) {
+      document.getElementById('occasion-input').value = text;
+      generateAIOutfit();
+    }
+
+    function generateAIOutfit() {
+      const prompt = document.getElementById('occasion-input').value.toLowerCase();
+      const weather = document.getElementById('weather-select').value;
+      const btn = document.getElementById('generate-btn');
+      
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin text-brand-500"></i> Curating...`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        // Find best items matching prompt formality and temperature
+        const isFormal = prompt.includes('meeting') || prompt.includes('dinner') || prompt.includes('client') || prompt.includes('formal');
+        const isWarm = weather === 'warm';
+        const isRainOrCold = weather === 'rainy' || weather === 'cold';
+
+        // Select items according to criteria
+        const tops = wardrobe.filter(i => i.category === 'tops');
+        const bottoms = wardrobe.filter(i => i.category === 'bottoms');
+        const shoes = wardrobe.filter(i => i.category === 'shoes');
+        const coats = wardrobe.filter(i => i.category === 'outerwear');
+        const accs = wardrobe.filter(i => i.category === 'accessories');
+
+        // Dynamic intelligent fallback picking
+        const chosenTop = tops.find(t => isWarm ? t.warmth <= 2 : t.warmth >= 3) || tops[0];
+        const chosenBottom = bottoms.find(b => isFormal ? b.formality !== 'Casual' : true) || bottoms[0];
+        const chosenShoe = shoes.find(s => isRainOrCold ? s.name.includes('Boot') || s.name.includes('Derby') : true) || shoes[0];
+        const chosenCoat = isWarm ? null : (coats.find(c => isFormal ? c.formality !== 'Casual' : true) || coats[0]);
+        const chosenAcc = accs.length ? accs[Math.floor(Math.random() * accs.length)] : null;
+
+        currentOutfit = {
+          tops: chosenTop ? chosenTop.id : null,
+          bottoms: chosenBottom ? chosenBottom.id : null,
+          shoes: chosenShoe ? chosenShoe.id : null,
+          outerwear: chosenCoat ? chosenCoat.id : null,
+          accessories: chosenAcc ? chosenAcc.id : null
+        };
+
+        renderCurrentOutfitDisplay(prompt, weather);
+
+        btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-brand-500"></i> <span>Curate Look</span>`;
+        lucide.createIcons();
+        showToast("AI synthesized coordinated look from your closet");
+      }, 650);
+    }
+
+    function reRollOutfit() {
+      // Pick random alternatives from categories
+      const pickRandom = (cat) => {
+        const pool = wardrobe.filter(i => i.category === cat);
+        return pool[Math.floor(Math.random() * pool.length)]?.id || null;
+      };
+
+      currentOutfit = {
+        outerwear: pickRandom('outerwear'),
+        tops: pickRandom('tops'),
+        bottoms: pickRandom('bottoms'),
+        shoes: pickRandom('shoes'),
+        accessories: pickRandom('accessories')
+      };
+
+      renderCurrentOutfitDisplay("Casual Refreshed Combination", "mild");
+    }
+
+    function renderCurrentOutfitDisplay(promptText = "", weather = "rainy") {
+      const container = document.getElementById('outfit-pieces-grid');
+      container.innerHTML = '';
+
+      const categories = ['outerwear', 'tops', 'bottoms', 'shoes'];
+      const activeGarments = [];
+
+      categories.forEach(cat => {
+        const itemId = currentOutfit[cat];
+        const item = wardrobe.find(w => w.id === itemId);
+
+        if (!item) return;
+        activeGarments.push(item);
+
+        const card = document.createElement('div');
+        card.className = "group relative bg-[#FCFAF7] border border-[#E9E0D4] hover:border-noir-900 rounded-2xl p-3 flex flex-col transition cursor-pointer shadow-sm hover:shadow-md";
+        card.onclick = () => openSwapModal(cat);
+
+        card.innerHTML = `
+          <div class="relative w-full aspect-square bg-[#F7F3EC] rounded-xl flex items-center justify-center p-3 overflow-hidden">
+            <!-- Cutout Look with Studio Floor Shadow -->
+            <img src="${item.imageUrl}" alt="${item.name}" class="object-contain max-h-full max-w-full studio-shadow group-hover:scale-105 transition-transform duration-300">
+            <span class="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/90 text-stone-700 shadow-xs">
+              ${cat}
+            </span>
+            <div class="absolute inset-0 bg-noir-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl text-white text-xs font-semibold gap-1.5 backdrop-blur-xs">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i> Swap Piece
+            </div>
+          </div>
+          <div class="mt-2.5 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-xs font-bold text-noir-900 line-clamp-1">${item.name}</p>
+              <div class="flex items-center gap-1.5 mt-1 text-[11px] text-stone-500">
+                <span class="w-2 h-2 rounded-full inline-block" style="background-color: ${item.colorHex}; border: 1px solid #ddd"></span>
+                <span>${item.fabric}</span>
+              </div>
+            </div>
+            <div class="mt-2 pt-2 border-t border-[#F0EAE0] flex items-center justify-between text-[10px] font-medium text-stone-500">
+              <span>Worn ${item.wears}x</span>
+              <span class="text-brand-700 font-semibold">${item.formality}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Update AI Editorial Explanations dynamically
+      updateStylistRationale(activeGarments, promptText);
+      lucide.createIcons();
+    }
+
+    function updateStylistRationale(garments, prompt) {
+      const notesEl = document.getElementById('stylist-notes');
+      const paletteEl = document.getElementById('outfit-color-palette');
+      
+      // Calculate average formality and warmth
+      const avgWarmth = Math.round(garments.reduce((acc, g) => acc + (g.warmth || 3), 0) / (garments.length || 1));
+      const warmPercentage = (avgWarmth / 5) * 100;
+      document.getElementById('metric-warmth-bar').style.width = `${warmPercentage}%`;
+      document.getElementById('metric-warmth-text').innerText = avgWarmth >= 4 ? 'Heavy Weatherproofing' : (avgWarmth >= 3 ? 'Balanced Warmth' : 'Lightweight Breathable');
+
+      // Update Color Swatches
+      paletteEl.innerHTML = garments.map(g => `
+        <div class="group relative flex flex-col items-center">
+          <div class="w-7 h-7 rounded-full shadow-inner border border-stone-300" style="background-color: ${g.colorHex}"></div>
+          <span class="text-[9px] text-stone-400 mt-1 font-mono">${g.color.split(' ')[0]}</span>
+        </div>
+      `).join('');
+
+      // Compose adaptive editorial rationale
+      const top = garments.find(g => g.category === 'tops');
+      const coat = garments.find(g => g.category === 'outerwear');
+      const bottom = garments.find(g => g.category === 'bottoms');
+      const shoe = garments.find(g => g.category === 'shoes');
+
+      let rationaleHTML = `
+        <p>
+          <strong>Silhouette Anchoring:</strong> We combined the <em>${coat ? coat.name : 'relaxed top structure'}</em> with the <em>${bottom ? bottom.name : 'tapered trousers'}</em>. This establishes a clean architectural drape that keeps the silhouette refined without feeling rigid.
+        </p>
+        <p>
+          <strong>Color & Texture Harmony:</strong> The neutral warmth of the <em>${top ? top.color : 'palette'}</em> (${top ? top.fabric : 'textured fabric'}) offsets the darker foundation of the <em>${bottom ? bottom.color : 'dark trousers'}</em> and <em>${shoe ? shoe.name : 'footwear'}</em>, creating visual grounding tailored for the day.
+        </p>
+        <p class="text-xs text-brand-700 bg-brand-50 p-2.5 rounded-xl border border-brand-200">
+          ✨ <strong>Occasion Adaptation:</strong> Calibrated for <em>"${document.getElementById('occasion-input').value}"</em>. Formality balances effortless sophistication with functional movement.
+        </p>
+      `;
+
+      notesEl.innerHTML = rationaleHTML;
+    }
+
+    /* ========================================================
+       4. SWIPE TO SWAP & DYNAMIC RECOMPOSITION
+       ======================================================== */
+    function openSwapModal(category) {
+      activeSwapCategory = category;
+      document.getElementById('swap-category-name').innerText = category.toUpperCase();
+      const grid = document.getElementById('swap-options-grid');
+      grid.innerHTML = '';
+
+      const candidates = wardrobe.filter(i => i.category === category);
+      candidates.forEach(item => {
+        const isCurrent = currentOutfit[category] === item.id;
+        const itemCard = document.createElement('div');
+        itemCard.className = `p-3 rounded-2xl border cursor-pointer transition flex flex-col items-center text-center ${
+          isCurrent ? 'border-brand-700 bg-brand-50 ring-2 ring-brand-700' : 'border-[#EAE1D3] hover:border-noir-900 bg-white'
+        }`;
+        itemCard.onclick = () => selectSwapItem(item.id);
+
+        itemCard.innerHTML = `
+          <div class="w-full aspect-square bg-[#F7F4EE] rounded-xl flex items-center justify-center p-2 mb-2">
+            <img src="${item.imageUrl}" class="object-contain max-h-full max-w-full studio-shadow">
+          </div>
+          <span class="text-xs font-bold text-noir-900 line-clamp-1">${item.name}</span>
+          <span class="text-[11px] text-stone-500">${item.fabric} • Worn ${item.wears}x</span>
+          ${isCurrent ? '<span class="mt-2 text-[10px] font-bold text-brand-700">Currently Selected</span>' : ''}
+        `;
+        grid.appendChild(itemCard);
+      });
+
+      document.getElementById('swap-modal').classList.remove('hidden');
+    }
+
+    function selectSwapItem(itemId) {
+      if (activeSwapCategory) {
+        currentOutfit[activeSwapCategory] = itemId;
+        closeSwapModal();
+        renderCurrentOutfitDisplay(document.getElementById('occasion-input').value);
+        showToast(`Swapped ${activeSwapCategory}! Look restyled around choice.`);
+      }
+    }
+
+    function closeSwapModal() {
+      document.getElementById('swap-modal').classList.add('hidden');
+      activeSwapCategory = null;
+    }
+
+    /* ========================================================
+       5. DIGITAL CUTOUT & AUTO-TAGGING ENGINE
+       ======================================================== */
+    function openUploadModal() {
+      resetUploadModal();
+      document.getElementById('upload-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeUploadModal() {
+      document.getElementById('upload-modal').classList.add('hidden');
+    }
+
+    function resetUploadModal() {
+      document.getElementById('upload-input-state').classList.remove('hidden');
+      document.getElementById('processing-view').classList.add('hidden');
+      document.getElementById('auto-tags-form').classList.add('hidden');
+      document.getElementById('save-garment-btn').disabled = true;
+      document.getElementById('save-garment-btn').classList.add('bg-stone-300', 'text-stone-500', 'cursor-not-allowed');
+      document.getElementById('save-garment-btn').classList.remove('bg-noir-900', 'text-brand-100', 'hover:bg-black');
+    }
+
+    function loadSampleGarment(type) {
+      let sampleData = {
+        trench: {
+          url: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=600&q=80',
+          name: 'Belted British Gabardine Raincoat',
+          cat: 'outerwear',
+          fabric: '100% Water-repellent Cotton',
+          color: 'Honey Beige',
+          colorHex: '#C5A880',
+          warmth: 4,
+          formality: 'Smart Casual'
+        },
+        knit: {
+          url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=600&q=80',
+          name: 'Brushed Alpaca Mock Neck',
+          cat: 'tops',
+          fabric: 'Alpaca & Wool Blend',
+          color: 'Alabaster White',
+          colorHex: '#F0ECE1',
+          warmth: 4,
+          formality: 'Casual'
+        },
+        loafers: {
+          url: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=600&q=80',
+          name: 'Handcrafted Cordovan Penny Loafers',
+          cat: 'shoes',
+          fabric: 'Glazed Horween Cordovan',
+          color: 'Burgundy Oxblood',
+          colorHex: '#4A1521',
+          warmth: 2,
+          formality: 'Formal'
+        }
+      }[type];
+
+      processSimulatedCutout(sampleData.url, sampleData);
+    }
+
+    function handleImageSelection(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imageUrl = e.target.result;
+        // Analyze simulated tags based on random fashion traits
+        const detectedTags = {
+          name: 'Uploaded Studio Garment',
+          cat: 'tops',
+          fabric: 'Breathable Cotton Weave',
+          color: 'Natural Oatmeal',
+          colorHex: '#D8CAB8',
+          warmth: 3,
+          formality: 'Casual'
+        };
+        processSimulatedCutout(imageUrl, detectedTags);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function processSimulatedCutout(imageUrl, detectedTags) {
+      document.getElementById('upload-input-state').classList.add('hidden');
+      document.getElementById('processing-view').classList.remove('hidden');
+
+      const img = document.getElementById('cutout-preview-img');
+      img.src = imageUrl;
+      img.classList.remove('studio-shadow');
+      img.style.filter = "contrast(115%) brightness(95%) grayscale(20%)"; // RAW selfie look
+
+      const statusEl = document.getElementById('ai-process-status');
+      const percentEl = document.getElementById('ai-process-percent');
+      const laser = document.getElementById('ai-scan-laser');
+      const togglePill = document.getElementById('cutout-toggle-pill');
+
+      laser.style.display = 'block';
+
+      // Stage 1: Segmentation
+      statusEl.innerText = "Analyzing subject contour & selfie depth...";
+      percentEl.innerText = "28%";
+
+      setTimeout(() => {
+        // Stage 2: Background removal
+        statusEl.innerText = "Zero-shot background removal & edge matting...";
+        percentEl.innerText = "67%";
+        
+        // Simulating the clean cutout conversion!
+        img.style.filter = "none";
+        img.classList.add('studio-shadow'); // Studio product clean drop-shadow!
+      }, 1100);
+
+      setTimeout(() => {
+        // Stage 3: Auto-tagging complete
+        statusEl.innerText = "Extracting fabric, warmth profile & color spectrum...";
+        percentEl.innerText = "100%";
+        laser.style.display = 'none';
+        togglePill.classList.remove('hidden');
+
+        // Populate Form Fields
+        document.getElementById('item-input-name').value = detectedTags.name;
+        document.getElementById('item-input-cat').value = detectedTags.cat;
+        document.getElementById('item-input-fabric').value = detectedTags.fabric;
+        document.getElementById('item-input-color').value = detectedTags.color;
+        document.getElementById('item-input-colorhex').value = detectedTags.colorHex;
+        document.getElementById('color-hex-label').innerText = detectedTags.colorHex;
+        document.getElementById('item-input-warmth').value = detectedTags.warmth;
+        document.getElementById('item-input-formality').value = detectedTags.formality;
+
+        document.getElementById('auto-tags-form').classList.remove('hidden');
+
+        // Enable Save button
+        const saveBtn = document.getElementById('save-garment-btn');
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('bg-stone-300', 'text-stone-500', 'cursor-not-allowed');
+        saveBtn.classList.add('bg-noir-900', 'text-brand-100', 'hover:bg-black');
+      }, 2100);
+    }
+
+    function saveNewGarment() {
+      const newGarment = {
+        id: 'w-' + (Date.now()),
+        name: document.getElementById('item-input-name').value || 'Unlabeled Garment',
+        category: document.getElementById('item-input-cat').value,
+        fabric: document.getElementById('item-input-fabric').value,
+        color: document.getElementById('item-input-color').value,
+        colorHex: document.getElementById('item-input-colorhex').value,
+        warmth: parseInt(document.getElementById('item-input-warmth').value),
+        formality: document.getElementById('item-input-formality').value,
+        imageUrl: document.getElementById('cutout-preview-img').src,
+        wears: 0,
+        lastWorn: null,
+        cutoutDone: true
+      };
+
+      wardrobe.unshift(newGarment);
+      saveState();
+      closeUploadModal();
+      switchTab('wardrobe');
+      showToast(`'${newGarment.name}' indexed with clean AI cutout!`);
+
+      // Celebrate
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+    }
+
+    /* ========================================================
+       6. WARDROBE VAULT RENDERING & MANAGEMENT
+       ======================================================== */
+    function filterWardrobe(category) {
+      document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-cat') === category) {
+          btn.classList.add('bg-noir-900', 'text-white');
+          btn.classList.remove('bg-white', 'text-stone-700');
+        } else {
+          btn.classList.remove('bg-noir-900', 'text-white');
+          btn.classList.add('bg-white', 'text-stone-700');
+        }
+      });
+      renderWardrobeGrid(category);
+    }
+
+    function renderWardrobeGrid(category = 'all') {
+      const grid = document.getElementById('wardrobe-grid');
+      grid.innerHTML = '';
+
+      const filtered = category === 'all' ? wardrobe : wardrobe.filter(w => w.category === category);
+      document.getElementById('wardrobe-count-pill').innerText = wardrobe.length;
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-4 border border-[#E8E1D5] shadow-xs hover:shadow-md transition flex flex-col justify-between group";
+
+        card.innerHTML = `
+          <div>
+            <div class="relative w-full aspect-square bg-[#FBF9F5] rounded-xl flex items-center justify-center p-3 mb-3 overflow-hidden border border-[#F2ECE2]">
+              <img src="${item.imageUrl}" alt="${item.name}" class="object-contain max-h-full max-w-full studio-shadow group-hover:scale-105 transition-transform duration-300">
+              
+              <span class="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wider bg-white/90 backdrop-blur px-2 py-0.5 rounded-full text-stone-700 shadow-2xs">
+                ${item.category}
+              </span>
+
+              <button onclick="deleteGarment('${item.id}'); event.stopPropagation();" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 hover:bg-rose-50 hover:text-rose-600 text-stone-400 opacity-0 group-hover:opacity-100 transition flex items-center justify-center shadow-xs">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <h4 class="font-editorial text-sm font-bold text-noir-900 line-clamp-1">${item.name}</h4>
+            
+            <div class="mt-2 flex flex-wrap gap-1">
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">${item.fabric}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-50 text-brand-800">${item.formality}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">Warmth: ${item.warmth}/5</span>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-[#F2ECE2] flex items-center justify-between text-xs text-stone-500">
+            <span class="flex items-center gap-1 font-medium">
+              <i data-lucide="repeat" class="w-3.5 h-3.5 text-brand-700"></i> ${item.wears} wears
+            </span>
+            <button onclick="logSingleGarmentWear('${item.id}')" class="text-[11px] font-semibold text-brand-700 hover:text-noir-900 flex items-center gap-1">
+              + Log Wear
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function deleteGarment(id) {
+      if (confirm("Remove this piece from your registered closet?")) {
+        wardrobe = wardrobe.filter(w => w.id !== id);
+        saveState();
+        renderWardrobeGrid();
+        showToast("Garment removed from vault");
+      }
+    }
+
+    function logSingleGarmentWear(id) {
+      const garment = wardrobe.find(w => w.id === id);
+      if (garment) {
+        garment.wears = (garment.wears || 0) + 1;
+        garment.lastWorn = new Date().toISOString().split('T')[0];
+        saveState();
+        renderWardrobeGrid();
+        showToast(`Incremented wear count for ${garment.name} (${garment.wears}x)`);
+      }
+    }
+
+    /* ========================================================
+       7. OUTFIT JOURNALING & CALENDAR TRACKER
+       ======================================================== */
+    function logCurrentOutfitToday() {
+      const today = new Date().toISOString().split('T')[0];
+      const activeIds = Object.values(currentOutfit).filter(Boolean);
+
+      // Increment wear counts on garments
+      activeIds.forEach(id => {
+        const item = wardrobe.find(w => w.id === id);
+        if (item) {
+          item.wears = (item.wears || 0) + 1;
+          item.lastWorn = today;
+        }
+      });
+
+      // Push to history
+      fitHistory.unshift({
+        id: 'log-' + Date.now(),
+        date: today,
+        occasion: document.getElementById('occasion-input').value || 'Daily Editorial Look',
+        itemIds: activeIds,
+        rating: '5/5'
+      });
+
+      saveState();
+      showToast("Outfit logged to Fit Journal & wear-counts updated!");
+
+      confetti({
+        particleCount: 40,
+        spread: 50,
+        origin: { y: 0.8 }
+      });
+    }
+
+    function renderJournal() {
+      // 1. Render Calendar Days
+      const grid = document.getElementById('calendar-days-grid');
+      grid.innerHTML = '';
+
+      const loggedDates = new Set(fitHistory.map(h => h.date));
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Render 31 days representation
+      for (let day = 1; day <= 31; day++) {
+        const dateStr = `2024-10-${day < 10 ? '0' + day : day}`;
+        const hasOutfit = loggedDates.has(dateStr);
+        const isToday = dateStr === todayStr;
+
+        const dayCell = document.createElement('div');
+        dayCell.className = `aspect-square rounded-xl p-1 flex flex-col items-center justify-between text-xs transition border ${
+          isToday
+            ? 'bg-noir-900 text-white border-noir-900 font-bold shadow'
+            : (hasOutfit 
+                ? 'bg-brand-100 text-brand-900 border-brand-200 font-semibold' 
+                : 'bg-stone-50 text-stone-400 border-stone-100 hover:border-stone-300')
+        }`;
+
+        dayCell.innerHTML = `
+          <span class="text-[11px]">${day}</span>
+          ${hasOutfit ? '<span class="w-1.5 h-1.5 rounded-full bg-brand-700 mb-1"></span>' : ''}
+        `;
+
+        grid.appendChild(dayCell);
+      }
+
+      // 2. Render Entries Timeline
+      const timeline = document.getElementById('journal-entries-list');
+      timeline.innerHTML = '';
+
+      if (fitHistory.length === 0) {
+        timeline.innerHTML = `<div class="p-8 text-center text-stone-400 text-sm">No outfits logged yet. Wear an outfit from the AI Stylist to begin tracking!</div>`;
+        return;
+      }
+
+      fitHistory.forEach(entry => {
+        const entryCard = document.createElement('div');
+        entryCard.className = "bg-white p-5 rounded-3xl border border-[#E8E0D5] shadow-xs flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between";
+
+        const garments = entry.itemIds.map(id => wardrobe.find(w => w.id === id)).filter(Boolean);
+
+        const thumbnailsHTML = garments.map(g => `
+          <div class="w-12 h-12 rounded-xl bg-[#F7F4EE] border border-[#ECE4D8] p-1 flex items-center justify-center shrink-0" title="${g.name}">
+            <img src="${g.imageUrl}" class="max-h-full max-w-full object-contain studio-shadow">
+          </div>
+        `).join('');
+
+        entryCard.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-xs font-bold text-stone-900">${formatDate(entry.date)}</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-[#FAF5EB] text-brand-800 font-medium">Logged</span>
+            </div>
+            <h4 class="font-editorial text-base font-bold text-noir-900">${entry.occasion}</h4>
+            <div class="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+              ${thumbnailsHTML}
+            </div>
+          </div>
+
+          <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-stone-100">
+            <span class="text-xs text-emerald-600 font-bold">Coordination 98%</span>
+            <span class="text-[11px] text-stone-400">${garments.length} pieces tracked</span>
+          </div>
+        `;
+        timeline.appendChild(entryCard);
+      });
+
+      lucide.createIcons();
+    }
+
+    function formatDate(dateStr) {
+      try {
+        const parts = dateStr.split('-');
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch(e) {
+        return dateStr;
+      }
+    }
+
+    /* ========================================================
+       8. CLOSET INTELLIGENCE & ANALYTICS
+       ======================================================== */
+    function renderAnalytics() {
+      // Sort items by wear frequency
+      const sortedByWears = [...wardrobe].sort((a, b) => (b.wears || 0) - (a.wears || 0));
+      const topWorn = sortedByWears.slice(0, 4);
+      
+      // Neglected pieces: unworn or worn <= 2 times
+      const neglected = sortedByWears.filter(i => (i.wears || 0) <= 2);
+
+      document.getElementById('metric-total-items').innerText = wardrobe.length;
+      document.getElementById('metric-neglected-count').innerText = `${neglected.length} items`;
+
+      // Render Top Worn MVPs
+      const topContainer = document.getElementById('analytics-top-worn');
+      topContainer.innerHTML = '';
+      topWorn.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-3.5 p-3 rounded-2xl bg-[#FCFAF7] border border-[#ECE4D8]";
+        row.innerHTML = `
+          <div class="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center border border-stone-200 shrink-0">
+            <img src="${item.imageUrl}" class="max-h-full max-w-full object-contain studio-shadow">
+          </div>
+          <div class="flex-1 min-w-0">
+            <h5 class="text-xs font-bold text-noir-900 truncate">${item.name}</h5>
+            <p class="text-[11px] text-stone-500">${item.category} • ${item.fabric}</p>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-sm font-bold text-noir-900">${item.wears} wears</span>
+            <span class="block text-[10px] text-emerald-600 font-semibold">High ROI</span>
+          </div>
+        `;
+        topContainer.appendChild(row);
+      });
+
+      // Render Forgotten Clothes
+      const forgottenContainer = document.getElementById('analytics-forgotten');
+      forgottenContainer.innerHTML = '';
+      
+      if (neglected.length === 0) {
+        forgottenContainer.innerHTML = `<p class="text-xs text-stone-400 p-4 text-center">Every single item in your closet is actively rotated! Exceptional rotation efficiency.</p>`;
+      } else {
+        neglected.slice(0, 4).forEach(item => {
+          const row = document.createElement('div');
+          row.className = "flex items-center gap-3.5 p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/60";
+          row.innerHTML = `
+            <div class="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center border border-stone-200 shrink-0">
+              <img src="${item.imageUrl}" class="max-h-full max-w-full object-contain studio-shadow">
+            </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="text-xs font-bold text-noir-900 truncate">${item.name}</h5>
+              <p class="text-[11px] text-stone-500">Only ${item.wears} wear • In closet archive</p>
+            </div>
+            <button onclick="curateLookAroundPiece('${item.id}')" class="px-3 py-1.5 rounded-full bg-noir-900 text-brand-100 text-xs font-semibold hover:bg-black transition shrink-0">
+              Style This
+            </button>
+          `;
+          forgottenContainer.appendChild(row);
+        });
+      }
+
+      lucide.createIcons();
+    }
+
+    function curateLookAroundPiece(itemId) {
+      const item = wardrobe.find(w => w.id === itemId);
+      if (!item) return;
+
+      currentOutfit[item.category] = item.id;
+      switchTab('stylist');
+      document.getElementById('occasion-input').value = `Styled showcase highlighting my ${item.name}`;
+      renderCurrentOutfitDisplay(`Spotlight on ${item.name}`);
+      showToast(`AI rebuilt outfit anchored around neglected gem!`);
+    }
+
+    /* ========================================================
+       9. UI HELPERS & NOTIFICATIONS
+       ======================================================== */
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = message;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+
+    function updateGlobalMetrics() {
+      document.getElementById('wardrobe-count-pill').innerText = wardrobe.length;
+    }
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateGlobalMetrics();
+      renderCurrentOutfitDisplay("Rainy Monday client meeting & cozy coffee catch-up", "rainy");
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
